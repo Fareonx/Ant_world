@@ -1,0 +1,19 @@
+[project]
+name = "antworld"
+version = "0.1.0"
+description = "Детерминированная воксельная симуляция колонии на numpy"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+viewer = ["pygame>=2.5"]
+dev = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+include = ["antworld*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
+addopts = "-m 'not slow'"
+markers = ["slow: полный масштаб мира, десятки секунд на прогон"]
