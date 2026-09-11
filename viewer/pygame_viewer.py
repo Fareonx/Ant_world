@@ -76,8 +76,8 @@ def play(path: str, scale: int, fps: int) -> None:
                 elif event.key == pygame.K_LEFT:
                     frame = max(frame - 1, 0)
 
-        for f, y, x, z in changes[changes[:, 0] == frame]:
-            height[y, x] = z
+        for row in changes[changes[:, 0] == frame]:
+            height[row[1], row[2]] = row[3]
         food = np.repeat(np.repeat(rec["food"][frame], down, 0), down, 1)
         screen.blit(terrain_surface(pygame, height, food, scale), (0, 0))
         a = record.frame_agents(rec, frame)

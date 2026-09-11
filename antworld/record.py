@@ -24,6 +24,7 @@ class Recorder:
         self.cfg = world.cfg
         self.down = max(1, int(food_downsample))
         self.surface0 = world.terrain.surface_z.copy()
+        self.material0 = self._surface_material(world)
         self._surface_prev = self.surface0.copy()
         self.ticks: list[int] = []
         self.food: list[np.ndarray] = []
@@ -61,6 +62,7 @@ class Recorder:
         moved = np.nonzero(surf != self._surface_prev)
         if moved[0].size:
             frame = len(self.ticks) - 1
+            material = self._surface_material(world)
             self.changes.append(
                 np.stack(
                     [
@@ -68,6 +70,7 @@ class Recorder:
                         moved[0].astype(np.int32),
                         moved[1].astype(np.int32),
                         surf[moved].astype(np.int32),
+                        material[moved].astype(np.int32),
                     ],
                     axis=1,
                 )
@@ -79,12 +82,28 @@ class Recorder:
              float(world.food.sum()))
         )
 
+    @staticmethod
+    def _surface_material(world: World) -> np.ndarray:
+        """Материал верхнего твёрдого вокселя — по нему просмотрщик красит карту.
+
+        Вода лежит не в нём, а над ним, поэтому русло помечается отдельно: иначе
+        река на карте неотличима от обычной земли.
+        """
+        t = world.terrain
+        yy, xx = np.meshgrid(
+            np.arange(world.cfg.size_y), np.arange(world.cfg.size_x), indexing="ij"
+        )
+        material = t.voxel[t.surface_z, yy, xx].copy()
+        from .voxel import WATER
+        material[t.voxel[t.surface_z + 1, yy, xx] == WATER] = WATER
+        return material
+
     def save(self, path: str) -> None:
         counts = np.array([a.size for a in self.ax], dtype=np.int32)
         offsets = np.concatenate([[0], np.cumsum(counts)]).astype(np.int64)
         changes = (
             np.concatenate(self.changes) if self.changes
-            else np.zeros((0, 4), dtype=np.int32)
+            else np.zeros((0, 5), dtype=np.int32)
         )
         meta = {
             "size_x": self.cfg.size_x, "size_y": self.cfg.size_y,
@@ -96,6 +115,7 @@ class Recorder:
             _meta=np.frombuffer(json.dumps(meta).encode(), dtype=np.uint8),
             ticks=np.array(self.ticks, dtype=np.int32),
             surface0=self.surface0,
+            material0=self.material0,
             surface_changes=changes,
             food=np.stack(self.food),
             offsets=offsets,
