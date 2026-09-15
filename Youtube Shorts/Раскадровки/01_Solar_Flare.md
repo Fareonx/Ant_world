@@ -12,7 +12,10 @@
 ### КАДР 1 — ХУК 🎬
 **0:00–0:02**
 **На экране:** гигантская петля плазмы вырывается с поверхности Солнца, занимает весь кадр
-**Промпт:** `massive solar flare erupting from the surface of the sun, enormous plasma loop arcing into space, extreme close range, blinding orange`
+**Промпт:** `colossal solar prominence arch erupting from the limb of the sun, horseshoe-shaped plasma loop with both ends anchored to the solar surface, expanding coronal mass ejection dome spreading outward, granulated surface with dark sunspots, brilliant chromosphere rim`
+**Negative:** `laser beam, straight ray, spotlight, lens flare, energy weapon`
+> Развёрнутая профессиональная версия этого промпта — в `ПЕРВЫЙ_РОЛИК_ПОШАГОВО.md`, кадр 1.
+> Слово `flare` в промпте даёт прямой луч, как из бластера — используй `prominence`.
 **Движение:** `slow motion expansion of light, plasma drifting outward, no camera shake`
 **Озвучка:** `The Sun just fired something at us.`
 **Субтитр:** `THE SUN` / `JUST FIRED` / `AT US`
@@ -33,7 +36,8 @@
 ### КАДР 3
 **0:05–0:09**
 **На экране:** стена плазмы движется сквозь космос к маленькой синей Земле вдалеке
-**Промпт:** `a vast wall of solar plasma travelling through deep space toward a small distant blue Earth, sense of enormous scale`
+**Промпт:** `an enormous expanding cloud front of solar plasma sweeping through deep space, rounded leading edge, semi-transparent glowing gas with internal filaments, a small distant blue Earth dwarfed by its scale`
+**Negative:** `flat wall, solid surface, straight beam, laser`
 **Движение:** панорама слева направо, от плазмы к Земле
 **Озвучка:** `The rest arrives tomorrow morning. A wall of charged plasma, wider than Earth.`
 **Субтитр:** `WIDER` / `THAN EARTH`
