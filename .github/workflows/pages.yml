@@ -1,0 +1,38 @@
+name: Deploy to GitHub Pages
+
+# Публикует папку imposter/ на GitHub Pages.
+# Один раз: Settings → Pages → Source: «GitHub Actions».
+# Для приватного репозитория Pages доступен только на платном тарифе GitHub —
+# тогда задайте переменную репозитория DEPLOY_PAGES=true (Settings → Variables).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'imposter/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event.repository.private == false || vars.DEPLOY_PAGES == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: imposter
+      - id: deployment
+        uses: actions/deploy-pages@v4
