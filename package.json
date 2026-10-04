@@ -1,0 +1,10 @@
+{
+  "name": "impostor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server imposter -p 8080 -c-1",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node tests/e2e.mjs"
+  }
+}
