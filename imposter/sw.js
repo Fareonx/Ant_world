@@ -1,6 +1,6 @@
 // Oflayn iş üçün service worker.
 // Fayllar dəyişəndə VERSION-u artırın ki, telefonlar yeni versiyanı yükləsin.
-const VERSION = 'impostor-v1';
+const VERSION = 'impostor-v2';
 
 const ASSETS = [
   './',

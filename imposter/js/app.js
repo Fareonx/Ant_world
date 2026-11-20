@@ -87,7 +87,6 @@ function load() {
   const g = data.game;
   if (g && Array.isArray(g.roster) && Array.isArray(g.order) && Array.isArray(g.imposters) && g.cfg) {
     // Məxfilik: tətbiq yenidən açılanda heç bir kart açıq qalmır.
-    g.revealed = false;
     g.seen = false;
     g.peek = null;
     g.voteReady = false;
@@ -98,6 +97,9 @@ function load() {
       g.timer.done = true;
     }
     state.game = g;
+    // Tətbiq oyun zamanı bağlanıbsa (iOS fonda yenidən yükləyə bilər), oyuna qayıdırıq.
+    // Oyundan «✕» ilə çıxanda oyun tamamilə silinir.
+    state.screen = 'game';
   }
 }
 
@@ -281,7 +283,6 @@ function newRound(roster, roundNumber, prevFirst) {
     },
     phase: 'reveal',
     revealIdx: 0,
-    revealed: false,
     seen: false,
     peek: null,
     votes: {},
@@ -394,9 +395,6 @@ const actions = {
     if (el.dataset.to === 'scores') state.scoresBack = state.screen === 'game' ? 'game' : 'home';
     go(el.dataset.to);
   },
-  resume() {
-    go('game');
-  },
   home() {
     go('home');
   },
@@ -481,18 +479,6 @@ const actions = {
   },
 
   // --- Kartlar ---
-  reveal() {
-    const g = state.game;
-    if (g.peek) {
-      g.peek.revealed = !g.peek.revealed;
-      g.peek.seen = true;
-    } else {
-      g.revealed = !g.revealed;
-      g.seen = true;
-    }
-    haptic();
-    render();
-  },
   'next-card'() {
     const g = state.game;
     if (g.peek) {
@@ -501,7 +487,6 @@ const actions = {
       return;
     }
     if (!g.seen) return;
-    g.revealed = false;
     g.seen = false;
     if (g.revealIdx < g.roster.length - 1) {
       g.revealIdx++;
@@ -517,7 +502,7 @@ const actions = {
   },
   'peek-pick'(el) {
     ui.modal = null;
-    state.game.peek = { id: el.dataset.id, revealed: false, seen: false };
+    state.game.peek = { id: el.dataset.id, seen: false };
     window.scrollTo(0, 0);
     render();
   },
@@ -645,14 +630,17 @@ const actions = {
   },
   exit() {
     confirmModal({
-      title: 'Ana səhifəyə qayıdılsın?',
-      text: 'Raund yadda qalacaq — «Davam et» ilə qayıda bilərsən.',
-      ok: 'Bəli, çıx',
+      title: 'Oyun bitirilsin?',
+      text: 'Bu oyun tamamilə dayandırılacaq. Xallar yadda qalır.',
+      ok: 'Bəli, bitir',
+      danger: true,
       onOk() {
         pauseTimer();
         keepAwake(false);
+        state.game = null;
         save();
         state.screen = 'home';
+        window.scrollTo(0, 0);
       },
     });
   },
@@ -680,6 +668,51 @@ function afterPlayersChange() {
   save();
   render();
 }
+
+// --- Yuxarı sürüşdürmə (kartın örtüyü) ---
+let drag = null;
+
+function markSeen() {
+  const g = state.game;
+  if (!g) return;
+  const target = g.peek || g;
+  if (target.seen) return;
+  target.seen = true;
+  haptic(20);
+  const btn = document.getElementById('next-btn');
+  btn?.removeAttribute('aria-disabled');
+  const txt = document.getElementById('pass-text');
+  if (txt) txt.textContent = 'Telefonu növbəti oyunçuya ver';
+}
+
+document.addEventListener('pointerdown', (e) => {
+  const cover = e.target.closest('.cover');
+  if (!cover || e.target.closest('button') || drag) return;
+  drag = { cover, id: e.pointerId, startY: e.clientY, h: cover.offsetHeight };
+  try {
+    cover.setPointerCapture(e.pointerId);
+  } catch {
+    /* köhnə brauzerlər */
+  }
+  cover.classList.add('dragging');
+});
+
+document.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  e.preventDefault();
+  const dy = Math.max(-drag.h * 0.92, Math.min(0, e.clientY - drag.startY));
+  drag.cover.style.transform = `translateY(${dy}px)`;
+  if (-dy > drag.h * 0.35) markSeen();
+});
+
+function endDrag(e) {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  drag.cover.classList.remove('dragging');
+  drag.cover.style.transform = '';
+  drag = null;
+}
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
 
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
@@ -784,7 +817,6 @@ function installBanner() {
 }
 
 function screenHome() {
-  const g = state.game;
   const hasScores = Object.keys(state.scores).length > 0;
   return `
   <main class="screen home">
@@ -795,8 +827,7 @@ function screenHome() {
       <p class="stats">${CATEGORIES.length} kateqoriya · ${TOTAL_WORDS} söz</p>
     </div>
     <div class="stack">
-      ${g ? `<button class="btn btn-primary" data-action="resume">▶ Davam et · Raund ${g.round}</button>` : ''}
-      <button class="btn ${g ? 'btn-secondary' : 'btn-primary'}" data-action="go" data-to="setup">${g ? '✨ Yeni oyun' : '▶ Oyuna başla'}</button>
+      <button class="btn btn-primary btn-lg" data-action="go" data-to="setup">▶ Yeni oyun</button>
       <div class="row">
         <button class="btn btn-ghost" data-action="go" data-to="rules">📖 Qaydalar</button>
         <button class="btn btn-ghost" data-action="go" data-to="scores" ${hasScores ? '' : 'data-empty="1"'}>🏆 Xallar</button>
@@ -889,7 +920,7 @@ function screenSetup() {
           undercover
             ? 'Undercover rejimində ipucu olmur'
             : s.hint
-              ? 'Açıqdır — impostor sözlə uzaqdan bağlı bir ipucu görür'
+              ? 'Açıqdır — impostor sözə oxşar bir ipucu görür (məs. Stul → Taburet)'
               : 'Bağlıdır — impostor heç bir ipucu görmür'
         }</small>
       </span>
@@ -959,11 +990,11 @@ function screenRules() {
     </section>
     <section class="card prose">
       <h2>💡 İpucu</h2>
-      <p>İpucu açıq olanda impostor sözlə <b>uzaqdan</b> bağlı bir söz görür. Məsələn, «Futbol» üçün ipucu «Yaşıl» ola bilər. Bu, sözü birbaşa açmır, yalnız istiqamət verir.</p>
+      <p>İpucu açıq olanda impostor gizli sözə <b>oxşar, amma fərqli</b> bir söz görür. Məsələn, «Stul» üçün ipucu «Taburet», «Terlik» üçün «Sandal» ola bilər. Bu, istiqamət verir, amma sözü birbaşa açmır.</p>
     </section>
     <section class="card prose">
       <h2>🎭 Undercover rejimi</h2>
-      <p>İmpostor oxşar, amma fərqli söz alır (məsələn, «Pizza» əvəzinə «Lahmacun») və impostor olduğunu bilmir. Diqqətli olun!</p>
+      <p>İmpostor oxşar, amma fərqli söz alır (məsələn, «Stul» əvəzinə «Taburet») və impostor olduğunu bilmir. Diqqətli olun!</p>
     </section>
     <section class="card prose">
       <h2>🏆 Xallar</h2>
@@ -1021,26 +1052,51 @@ function gameTop(label, right = '', left = '<button class="icon-btn" data-action
   </header>`;
 }
 
-function cardBack(g, pid) {
+const ICON_CIV = `
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <circle cx="32" cy="20" r="11" fill="currentColor"/>
+  <circle cx="13" cy="25" r="8" fill="currentColor" opacity=".75"/>
+  <circle cx="51" cy="25" r="8" fill="currentColor" opacity=".75"/>
+  <path d="M12 56c0-12 9-20 20-20s20 8 20 20z" fill="currentColor"/>
+  <path d="M0 52c0-9 6-15 13-15 3 0 6 1 8 3-4 4-6 8-7 12z" fill="currentColor" opacity=".75"/>
+  <path d="M64 52c0-9-6-15-13-15-3 0-6 1-8 3 4 4 6 8 7 12z" fill="currentColor" opacity=".75"/>
+</svg>`;
+
+const ICON_IMP = `
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <path d="M17 28c1-12 6-20 15-20s14 8 15 20z" fill="currentColor"/>
+  <rect x="5" y="27" width="54" height="5" rx="2.5" fill="currentColor"/>
+  <circle cx="21" cy="46" r="9" fill="currentColor"/>
+  <circle cx="43" cy="46" r="9" fill="currentColor"/>
+  <rect x="28" y="43" width="8" height="4" rx="2" fill="currentColor"/>
+</svg>`;
+
+function roleView(g, pid) {
   const isImp = g.imposters.includes(pid);
-  const cat = g.cfg.showCategory ? `<p class="card-cat">${g.catEmoji} ${esc(g.catName)}</p>` : '';
+  const cat = g.cfg.showCategory ? `<p class="role-cat">${g.catEmoji} ${esc(g.catName)}</p>` : '';
   if (isImp && g.mode === 'classic') {
     return `
-    <div class="face back imp">
-      <div class="imp-icon">🕵️</div>
-      <div class="word imp-word">Sən impostorsan!</div>
-      <p class="sub">Sözü bilmirsən. Diqqətlə dinlə və özünü ələ vermə!</p>
-      ${g.hint ? `<div class="hint-pill"><span>💡 İpucu</span><b>${esc(g.hint)}</b></div>` : ''}
+    <div class="role imp">
+      <div class="role-icon">${ICON_IMP}</div>
+      <div class="role-title">İmpostor</div>
+      ${
+        g.hint
+          ? `<p class="role-label">İpucun:</p><div class="role-word">“${esc(g.hint)}”</div>`
+          : `<p class="role-label">Sözü bilmirsən — özünü ələ vermə!</p>`
+      }
       ${cat}
     </div>`;
   }
   const word = isImp ? g.imposterWord : g.word;
+  // Undercover rejimində impostor rolunu bilmir — hər iki kart eyni görünür.
+  const title = g.mode === 'undercover' ? '' : '<div class="role-title">Vətəndaş</div>';
   return `
-  <div class="face back civ">
-    <p class="label">Sənin sözün</p>
-    <div class="word">${esc(word)}</div>
+  <div class="role civ">
+    <div class="role-icon">${ICON_CIV}</div>
+    ${title}
+    <p class="role-label">Sözün:</p>
+    <div class="role-word">“${esc(word)}”</div>
     ${cat}
-    <p class="sub">Yadda saxla və heç kimə göstərmə</p>
   </div>`;
 }
 
@@ -1048,35 +1104,37 @@ function screenReveal(g) {
   const peek = g.peek;
   const pid = peek ? peek.id : g.roster[g.revealIdx].id;
   const p = playerById(g, pid);
-  const revealed = peek ? peek.revealed : g.revealed;
   const seen = peek ? peek.seen : g.seen;
   const total = g.roster.length;
   const isLast = !peek && g.revealIdx === total - 1;
-  const label = peek ? 'Karta yenidən baxış' : `Raund ${g.round} · Kart ${g.revealIdx + 1}/${total}`;
-  const btn = peek ? (seen ? '✓ Gizlət və qayıt' : '‹ Geri qayıt') : isLast ? '✓ Gizlət və müzakirəyə keç' : '✓ Gizlət və telefonu ötür';
-  const canGo = seen || Boolean(peek);
-  const pct = peek ? 100 : ((g.revealIdx + (seen ? 1 : 0)) / total) * 100;
+  const label = peek ? 'Karta yenidən baxış' : `Oyunçu ${g.revealIdx + 1}/${total}`;
+  const left = peek
+    ? '<button class="icon-btn glass" data-action="next-card" aria-label="Geri">‹</button>'
+    : '<button class="icon-btn glass" data-action="exit" aria-label="Oyunu bitir">✕</button>';
 
   return `
   <main class="screen game reveal">
-    ${peek ? gameTop(label, '', '<button class="icon-btn" data-action="next-card" aria-label="Geri">‹</button>') : gameTop(label)}
-    <div class="progress" aria-hidden="true"><div style="width:${pct}%"></div></div>
-    <div class="pass">
-      <p class="muted">Telefonu bu oyunçuya ver:</p>
-      <div class="pass-name">${avatar(p.name, p.hue, 'lg')}<span>${esc(p.name)}</span></div>
-    </div>
-    <button class="flip-card ${revealed ? 'revealed' : ''}" data-action="reveal" aria-label="${revealed ? 'Kartı gizlət' : 'Kartı aç'}">
-      <div class="flip-inner">
-        <div class="face front">
-          <div class="front-q">?</div>
-          <p class="front-text">Kartı açmaq üçün toxun</p>
-          <p class="front-warn">🙈 Başqaları ekrana baxmasın!</p>
+    <div class="stage">
+      <div class="role-layer">${roleView(g, pid)}</div>
+      <div class="cover" id="cover">
+        <header class="topbar">
+          ${left}
+          <div class="topbar-title small">${label}</div>
+          <div class="topbar-right"><span class="round-pill">Raund ${g.round}</span></div>
+        </header>
+        <h1 class="cover-name">${esc(p.name)}</h1>
+        <div class="cover-art">${LOGO}</div>
+        <div class="swipe-hint" aria-hidden="true">
+          <span class="swipe-arrow">⌃</span>
+          <span>Rolunu görmək üçün yuxarı sürüşdür</span>
         </div>
-        ${cardBack(g, pid)}
       </div>
-    </button>
-    <footer class="footer">
-      <button class="btn btn-primary" data-action="next-card" ${canGo ? '' : 'aria-disabled="true"'}>${canGo ? btn : 'Əvvəlcə kartına bax'}</button>
+    </div>
+    <footer class="footer reveal-footer">
+      <p class="pass-text" id="pass-text">${seen ? 'Telefonu növbəti oyunçuya ver' : 'Telefonu <b>' + esc(p.name) + '</b> götürsün 🙈'}</p>
+      <button class="btn btn-go" id="next-btn" data-action="next-card" ${seen || peek ? '' : 'aria-disabled="true"'}>${
+        peek ? '‹ Geri qayıt' : isLast ? 'Müzakirəyə keç' : 'Növbəti oyunçu'
+      }</button>
     </footer>
   </main>`;
 }
