@@ -85,7 +85,7 @@ export function pickWord(categories, selectedIds, usedKeys = [], lastKey = null)
 
   const pool = pools[randomInt(pools.length)];
   const index = pool.idxs[randomInt(pool.idxs.length)];
-  const [word, hint, undercover] = pool.c.words[index];
+  const [word, hint, undercover = hint] = pool.c.words[index];
   return { catId: pool.c.id, index, key: wordKey(pool.c.id, index), word, hint, undercover, reset };
 }
 

@@ -1,553 +1,1199 @@
 // Söz bazası.
-// Hər söz: [söz, ipucu, undercover sözü]
-//  - ipucu: impostora göstərilən UZAQ assosiasiya. Sözün sinonimi, hissəsi
-//    və ya eyni kateqoriyadan başqa söz OLMAMALIDIR — kateqoriya ilə birlikdə
-//    bir neçə sözə uyğun gəlməlidir.
-//  - undercover: "Undercover" rejimində impostora verilən oxşar, amma fərqli söz.
+// Hər söz: [söz, yaxın söz]
+//  - Yaxın söz eyni kateqoriyadan, oxşar, amma FƏRQLİ bir şeydir
+//    (məsələn, «Stul» → «Taburet», «Terlik» → «Sandal»). Nə eyni şey, nə də uzaq.
+//  - Klassik rejimdə impostora ipucu kimi, Undercover rejimində isə impostorun
+//    sözü kimi göstərilir.
+
+const c = (id, name, emoji, list) => ({
+  id,
+  name,
+  emoji,
+  words: list
+    .trim()
+    .split('\n')
+    .map((line) => line.split('|').map((s) => s.trim())),
+});
 
 export const CATEGORIES = [
-  {
-    id: 'food',
-    name: 'Yeməklər',
-    emoji: '🍽️',
-    words: [
-      ['Plov', 'Toy', 'Dolma'],
-      ['Dolma', 'Nənə', 'Plov'],
-      ['Qutab', 'Yarımay', 'Kətə'],
-      ['Dövğa', 'Yay', 'Ayran'],
-      ['Kabab', 'İstirahət günü', 'Şaurma'],
-      ['Pizza', 'Dairə', 'Lahmacun'],
-      ['Burger', 'Sürət', 'Sendviç'],
-      ['Şaurma', 'Gecə', 'Hot-doq'],
-      ['Suşi', 'Çubuq', 'Pizza'],
-      ['Şorba', 'Qış', 'Borş'],
-      ['Piti', 'Doyurucu', 'Bozbaş'],
-      ['Xəngəl', 'Sarımsaq', 'Düşbərə'],
-      ['Düşbərə', 'Qaşıq', 'Xəngəl'],
-      ['Paxlava', 'Qoz', 'Şəkərbura'],
-      ['Şəkərbura', 'Naxış', 'Paxlava'],
-      ['Omlet', 'Səhər', 'Bişmiş yumurta'],
-      ['Salat', 'Pəhriz', 'Göyərti'],
-      ['Makaron', 'Tələbə', 'Əriştə'],
-      ['Kartof fri', 'Sous', 'Çips'],
-      ['Dondurma', 'Uşaqlıq', 'Tort'],
-      ['Tort', 'Sürpriz', 'Pirojna'],
-      ['Çörək', 'Bərəkət', 'Lavaş'],
-      ['Lavaş', 'Nazik', 'Yuxa'],
-      ['Qovurma', 'Ehtiyat', 'Bozartma'],
-      ['Bal', 'Qızıl', 'Mürəbbə'],
-      ['Pendir', 'Ağ', 'Kəsmik'],
-    ],
-  },
-  {
-    id: 'fruit',
-    name: 'Meyvə və tərəvəz',
-    emoji: '🍎',
-    words: [
-      ['Alma', 'Bağ', 'Armud'],
-      ['Armud', 'Çay', 'Heyva'],
-      ['Banan', 'Sarı', 'Ananas'],
-      ['Nar', 'Yaqut', 'Əncir'],
-      ['Üzüm', 'Kiçik', 'Qarağat'],
-      ['Qarpız', 'Böyük', 'Yemiş'],
-      ['Yemiş', 'Ətir', 'Qarpız'],
-      ['Limon', 'Vitamin', 'Portağal'],
-      ['Portağal', 'Şirə', 'Mandarin'],
-      ['Mandarin', 'Yeni il', 'Portağal'],
-      ['Çiyələk', 'Qaymaq', 'Moruq'],
-      ['Gilas', 'May', 'Albalı'],
-      ['Ərik', 'Narıncı', 'Şaftalı'],
-      ['Şaftalı', 'Yumşaq', 'Ərik'],
-      ['Ananas', 'Tropik', 'Banan'],
-      ['Kivi', 'Tük', 'Feyxoa'],
-      ['Pomidor', 'Qırmızı', 'Bibər'],
-      ['Xiyar', 'Yaşıl', 'Kabaçok'],
-      ['Kartof', 'Torpaq', 'Şalğam'],
-      ['Soğan', 'Qat', 'Sarımsaq'],
-      ['Sarımsaq', 'Qoxu', 'Soğan'],
-      ['Yerkökü', 'Dovşan', 'Çuğundur'],
-      ['Badımcan', 'Bənövşəyi', 'Kabaçok'],
-      ['Kələm', 'Turşu', 'Kahı'],
-      ['Balqabaq', 'Payız', 'Yemiş'],
-    ],
-  },
-  {
-    id: 'animals',
-    name: 'Heyvanlar',
-    emoji: '🐾',
-    words: [
-      ['Pişik', 'Ev', 'İt'],
-      ['İt', 'Sədaqət', 'Canavar'],
-      ['Canavar', 'Ay', 'Tülkü'],
-      ['Tülkü', 'Hiylə', 'Canavar'],
-      ['Aslan', 'Kral', 'Pələng'],
-      ['Pələng', 'Zolaq', 'Bəbir'],
-      ['Fil', 'Nəhəng', 'Begemot'],
-      ['Zürafə', 'Ləkə', 'Dəvə'],
-      ['Dəvə', 'Səbir', 'At'],
-      ['At', 'Yarış', 'Eşşək'],
-      ['Eşşək', 'İnad', 'At'],
-      ['İnək', 'Kənd', 'Camış'],
-      ['Qoyun', 'Bulud', 'Keçi'],
-      ['Keçi', 'Dağ', 'Qoyun'],
-      ['Toyuq', 'Həyət', 'Ördək'],
-      ['Ördək', 'Göl', 'Qaz'],
-      ['Pinqvin', 'Soyuq', 'Suiti'],
-      ['Delfin', 'Ağıl', 'Balina'],
-      ['Köpəkbalığı', 'Qorxu', 'Delfin'],
-      ['Meymun', 'Təqlid', 'Qorilla'],
-      ['Ayı', 'Mağara', 'Panda'],
-      ['Panda', 'Ağ-qara', 'Koala'],
-      ['Dovşan', 'Qulaq', 'Dələ'],
-      ['Dələ', 'Ağac', 'Dovşan'],
-      ['İlan', 'Dəri', 'Kərtənkələ'],
-      ['Tısbağa', 'Yavaş', 'İlbiz'],
-      ['Qartal', 'Zirvə', 'Şahin'],
-      ['Bayquş', 'Gecə', 'Qarğa'],
-      ['Tutuquşu', 'Rəngarəng', 'Bülbül'],
-      ['Kəpənək', 'Bahar', 'Cırcırama'],
-      ['Arı', 'Zəhmət', 'Eşşəkarısı'],
-    ],
-  },
-  {
-    id: 'jobs',
-    name: 'Peşələr',
-    emoji: '👨‍⚕️',
-    words: [
-      ['Həkim', 'Ağ', 'Tibb bacısı'],
-      ['Müəllim', 'Sentyabr', 'Tərbiyəçi'],
-      ['Polis', 'Qayda', 'Əsgər'],
-      ['Aşpaz', 'Dad', 'Qənnadçı'],
-      ['Pilot', 'Eynək', 'Stüardessa'],
-      ['Yanğınsöndürən', 'Nərdivan', 'Xilasedici'],
-      ['Bərbər', 'Güzgü', 'Dərzi'],
-      ['Dərzi', 'Ölçü', 'Bərbər'],
-      ['Jurnalist', 'Sual', 'Bloger'],
-      ['Proqramçı', 'Qəhvə', 'Dizayner'],
-      ['Rəssam', 'İlham', 'Fotoqraf'],
-      ['Fotoqraf', 'An', 'Operator'],
-      ['Hakim', 'Tərəzi', 'Vəkil'],
-      ['Vəkil', 'Kostyum', 'Prokuror'],
-      ['Diş həkimi', 'Gülüş', 'Göz həkimi'],
-      ['Kosmonavt', 'Ulduz', 'Pilot'],
-      ['Müğənni', 'Səhnə', 'Aktyor'],
-      ['Aktyor', 'Maska', 'Müğənni'],
-      ['Sürücü', 'Tıxac', 'Kuryer'],
-      ['Fermer', 'Çəkmə', 'Çoban'],
-      ['Çoban', 'Dağ', 'Fermer'],
-      ['Memar', 'Xətkeş', 'İnşaatçı'],
-      ['İnşaatçı', 'Toz', 'Memar'],
-      ['Satıcı', 'Endirim', 'Kassir'],
-      ['Mühasib', 'Rəqəm', 'Bankir'],
-      ['Psixoloq', 'Divan', 'Həkim'],
-      ['Sehrbaz', 'Papaq', 'Kloun'],
-      ['Kloun', 'Bayram', 'Sehrbaz'],
-      ['Poçtalyon', 'Çanta', 'Kuryer'],
-      ['Futbolçu', 'Azarkeş', 'Basketbolçu'],
-    ],
-  },
-  {
-    id: 'places_world',
-    name: 'Ölkə və şəhərlər',
-    emoji: '🌍',
-    words: [
-      ['Türkiyə', 'Körpü', 'Yunanıstan'],
-      ['Rusiya', 'Qar', 'Kanada'],
-      ['Gürcüstan', 'Qonşu', 'İran'],
-      ['İran', 'Xalça', 'Türkiyə'],
-      ['Yaponiya', 'Günəş', 'Çin'],
-      ['Çin', 'İpək', 'Yaponiya'],
-      ['Misir', 'Qum', 'Mərakeş'],
-      ['İtaliya', 'Tarix', 'İspaniya'],
-      ['İspaniya', 'Günorta yuxusu', 'Portuqaliya'],
-      ['Fransa', 'Romantika', 'İtaliya'],
-      ['Almaniya', 'Dəqiqlik', 'Avstriya'],
-      ['İngiltərə', 'Yağış', 'Şotlandiya'],
-      ['ABŞ', 'Azadlıq', 'Kanada'],
-      ['Kanada', 'Meşə', 'ABŞ'],
-      ['Braziliya', 'Karnaval', 'Argentina'],
-      ['Hindistan', 'Ədviyyat', 'Pakistan'],
-      ['Bakı', 'Külək', 'Gəncə'],
-      ['Gəncə', 'Şair', 'Sumqayıt'],
-      ['Şuşa', 'Musiqi', 'Şəki'],
-      ['Şəki', 'Karvansaray', 'Qəbələ'],
-      ['Qəbələ', 'Turist', 'Quba'],
-      ['Quba', 'Sərin', 'Qusar'],
-      ['Lənkəran', 'Çay', 'Astara'],
-      ['Naxçıvan', 'Duz', 'Lənkəran'],
-      ['İstanbul', 'Martı', 'İzmir'],
-      ['Paris', 'Moda', 'London'],
-      ['London', 'Saat', 'Paris'],
-      ['Dubay', 'Rekord', 'Antalya'],
-      ['Moskva', 'Metro', 'Sankt-Peterburq'],
-      ['Nyu-York', 'Alma', 'Los-Anceles'],
-      ['Roma', 'İmperiya', 'Afina'],
-    ],
-  },
-  {
-    id: 'sports',
-    name: 'İdman',
-    emoji: '⚽',
-    words: [
-      ['Futbol', 'Yaşıl', 'Reqbi'],
-      ['Basketbol', 'Hündür', 'Voleybol'],
-      ['Voleybol', 'Çimərlik', 'Basketbol'],
-      ['Tennis', 'Sarı', 'Badminton'],
-      ['Badminton', 'Həyət', 'Tennis'],
-      ['Üzgüçülük', 'Xlor', 'Su polosu'],
-      ['Boks', 'Zəng', 'Kikboksinq'],
-      ['Güləş', 'Çiyin', 'Cüdo'],
-      ['Cüdo', 'Kəmər', 'Karate'],
-      ['Karate', 'Qışqırıq', 'Taekvondo'],
-      ['Şahmat', 'Səssizlik', 'Dama'],
-      ['Nərd', 'Çayxana', 'Domino'],
-      ['Qaçış', 'Nəfəs', 'Marafon'],
-      ['Qolf', 'Milyonçu', 'Bilyard'],
-      ['Bilyard', 'Fizika', 'Bouling'],
-      ['Bouling', 'Ayaqqabı', 'Bilyard'],
-      ['Xokkey', 'Soyuq', 'Fiqurlu konkisürmə'],
-      ['Fiqurlu konkisürmə', 'Fırlanma', 'Xokkey'],
-      ['Xizək', 'Yamac', 'Snoubord'],
-      ['Gimnastika', 'Balans', 'Akrobatika'],
-      ['Atıcılıq', 'Nişan', 'Oxatma'],
-      ['Oxatma', 'Meşə', 'Atıcılıq'],
-      ['Sörfinq', 'Havay', 'Skeytbord'],
-      ['Dağçılıq', 'İp', 'Turizm'],
-      ['Formula 1', 'Şampan', 'Ralli'],
-      ['Sumo', 'Çəki', 'Güləş'],
-    ],
-  },
-  {
-    id: 'home',
-    name: 'Ev əşyaları',
-    emoji: '🏠',
-    words: [
-      ['Divan', 'İstirahət', 'Kreslo'],
-      ['Soyuducu', 'Gecə yarısı', 'Dondurucu'],
-      ['Paltaryuyan', 'Corab', 'Qabyuyan'],
-      ['Ütü', 'Buxar', 'Fen'],
-      ['Fen', 'İsti', 'Ütü'],
-      ['Tozsoran', 'Səs-küy', 'Süpürgə'],
-      ['Süpürgə', 'Həyət', 'Tozsoran'],
-      ['Güzgü', 'Nağıl', 'Pəncərə'],
-      ['Pəncərə', 'Mənzərə', 'Qapı'],
-      ['Qapı', 'Döymək', 'Pəncərə'],
-      ['Çarpayı', 'Həftəsonu', 'Divan'],
-      ['Yastıq', 'Döyüş', 'Yorğan'],
-      ['Lampa', 'Fikir', 'Şam'],
-      ['Şam', 'İşıq sönməsi', 'Lampa'],
-      ['Televizor', 'Xəbərlər', 'Proyektor'],
-      ['Saat', 'Gecikmə', 'Təqvim'],
-      ['Qazan', 'Ocaq', 'Tava'],
-      ['Çaydan', 'Fit', 'Samovar'],
-      ['Bıçaq', 'Diqqət', 'Qayçı'],
-      ['Qayçı', 'Kağız', 'Bıçaq'],
-      ['Çətir', 'Unutmaq', 'Plaş'],
-      ['Diş fırçası', 'Nanə', 'Daraq'],
-      ['Daraq', 'Səhər', 'Diş fırçası'],
-      ['Sabun', 'Qoxu', 'Şampun'],
-      ['Dəsmal', 'Hamam', 'Xalat'],
-      ['Açar', 'Sirr', 'Kilid'],
-      ['Kondisioner', 'Yay', 'Ventilyator'],
-    ],
-  },
-  {
-    id: 'transport',
-    name: 'Nəqliyyat',
-    emoji: '🚗',
-    words: [
-      ['Avtomobil', 'Qaraj', 'Taksi'],
-      ['Taksi', 'Gecə', 'Avtobus'],
-      ['Avtobus', 'Sıxlıq', 'Metro'],
-      ['Metro', 'Qaranlıq', 'Tramvay'],
-      ['Tramvay', 'Zınqırov', 'Qatar'],
-      ['Qatar', 'Səyahət', 'Tramvay'],
-      ['Təyyarə', 'Bulud', 'Helikopter'],
-      ['Helikopter', 'Xilasetmə', 'Təyyarə'],
-      ['Gəmi', 'Dalğa', 'Qayıq'],
-      ['Qayıq', 'Balıqçı', 'Yaxta'],
-      ['Velosiped', 'Dizlər', 'Motosiklet'],
-      ['Motosiklet', 'Dəri gödəkcə', 'Skuter'],
-      ['Samokat', 'Səki', 'Velosiped'],
-      ['Raket', 'Alov', 'Peyk'],
-      ['Yük maşını', 'Ağır', 'Traktor'],
-      ['Traktor', 'Palçıq', 'Yük maşını'],
-      ['Təcili yardım', 'Ümid', 'Yanğın maşını'],
-      ['Yanğın maşını', 'Qırmızı', 'Təcili yardım'],
-      ['Hava şarı', 'Rəngarəng', 'Paraşüt'],
-      ['Paraşüt', 'Cəsarət', 'Hava şarı'],
-      ['Kanat yolu', 'Yüksəklik', 'Lift'],
-      ['Lift', 'Düymə', 'Eskalator'],
-      ['Kirşə', 'Qar', 'Xizək'],
-      ['Sualtı qayıq', 'Sarı', 'Gəmi'],
-      ['Limuzin', 'Toy', 'Avtomobil'],
-    ],
-  },
-  {
-    id: 'places',
-    name: 'Məkanlar',
-    emoji: '📍',
-    words: [
-      ['Məktəb', 'Zəng', 'Universitet'],
-      ['Universitet', 'Kitab', 'Məktəb'],
-      ['Xəstəxana', 'Növbə', 'Aptek'],
-      ['Aptek', 'Ağrı', 'Xəstəxana'],
-      ['Hava limanı', 'Gözləmə', 'Vağzal'],
-      ['Vağzal', 'Vida', 'Hava limanı'],
-      ['Çimərlik', 'Qum', 'Hovuz'],
-      ['Hovuz', 'Mavi', 'Akvapark'],
-      ['Kinoteatr', 'Bilet', 'Teatr'],
-      ['Teatr', 'Pərdə', 'Kinoteatr'],
-      ['Muzey', 'Keçmiş', 'Kitabxana'],
-      ['Kitabxana', 'Sükut', 'Kitab mağazası'],
-      ['Restoran', 'Bahşiş', 'Kafe'],
-      ['Supermarket', 'Siyahı', 'Bazar'],
-      ['Bazar', 'Təzə', 'Supermarket'],
-      ['Park', 'Gəzinti', 'Bağ'],
-      ['Zoopark', 'Qəfəs', 'Sirk'],
-      ['Sirk', 'Çadır', 'Zoopark'],
-      ['İdman zalı', 'Tər', 'Stadion'],
-      ['Stadion', 'Qışqırıq', 'İdman zalı'],
-      ['Bank', 'Faiz', 'Poçt'],
-      ['Poçt', 'Marka', 'Bank'],
-      ['Ofis', 'Bazar ertəsi', 'Fabrik'],
-      ['Otel', 'Səhər yeməyi', 'Hostel'],
-      ['Toy şadlığı', 'Rəqs', 'Restoran'],
-      ['Ada', 'Tənhalıq', 'Çimərlik'],
-      ['Mağara', 'Əks-səda', 'Tunel'],
-      ['Həbsxana', 'Qaçış', 'Polis bölməsi'],
-      ['Qəsr', 'Kral', 'Saray'],
-    ],
-  },
-  {
-    id: 'azerbaijan',
-    name: 'Azərbaycan',
-    emoji: '🇦🇿',
-    words: [
-      ['Qız Qalası', 'Əfsanə', 'Şirvanşahlar sarayı'],
-      ['Alov qüllələri', 'Üç', 'Qız Qalası'],
-      ['Bulvar', 'Axşam', 'Fəvvarələr meydanı'],
-      ['Novruz', 'Bayram', 'Yeni il'],
-      ['Xarıbülbül', 'Rəmz', 'Lalə'],
-      ['Tar', 'UNESCO', 'Kamança'],
-      ['Kamança', 'Yay', 'Tar'],
-      ['Muğam', 'Ruh', 'Meyxana'],
-      ['Meyxana', 'Bədahətən', 'Muğam'],
-      ['Xalça', 'Uçan', 'Kəlağayı'],
-      ['Kəlağayı', 'Bəzək', 'Xalça'],
-      ['Qobustan', 'Daş', 'Palçıq vulkanları'],
-      ['Yanardağ', 'Əbədi', 'Atəşgah'],
-      ['Atəşgah', 'Qədim', 'Yanardağ'],
-      ['Palçıq vulkanları', 'Boz', 'Qobustan'],
-      ['Şahdağ', 'Qış', 'Tufandağ'],
-      ['Göygöl', 'Zəlzələ', 'Maralgöl'],
-      ['Xan sarayı', 'Rəsm', 'Şirvanşahlar sarayı'],
-      ['İçərişəhər', 'Divar', 'Qız Qalası'],
-      ['Səməni', 'Yaşıl', 'Buğda'],
-      ['Tonqal', 'Atlamaq', 'Fişəng'],
-      ['Kosa və Keçəl', 'Tamaşa', 'Şaxta baba'],
-      ['Dədə Qorqud', 'Ağsaqqal', 'Koroğlu'],
-      ['Koroğlu', 'Opera', 'Dədə Qorqud'],
-      ['Molla Nəsrəddin', 'Gülüş', 'Bəhlul Danəndə'],
-      ['Çay', 'Mürəbbə', 'Qəhvə'],
-      ['Papaq', 'Qoyun', 'Çuxa'],
-      ['Çuxa', 'Qafqaz', 'Papaq'],
-    ],
-  },
-  {
-    id: 'clothes',
-    name: 'Geyim və aksesuar',
-    emoji: '👕',
-    words: [
-      ['Köynək', 'Düymə', 'Futbolka'],
-      ['Futbolka', 'Yay', 'Köynək'],
-      ['Cins şalvar', 'Mavi', 'Şort'],
-      ['Şort', 'Çimərlik', 'Cins şalvar'],
-      ['Don', 'Bal', 'Yubka'],
-      ['Yubka', 'Külək', 'Don'],
-      ['Kostyum', 'Müsahibə', 'Pencək'],
-      ['Qalstuk', 'Ofis', 'Şərf'],
-      ['Şərf', 'Qış', 'Qalstuk'],
-      ['Kepka', 'Günəş', 'Şlyapa'],
-      ['Əlcək', 'Soyuq', 'Corab'],
-      ['Corab', 'İtmək', 'Əlcək'],
-      ['Ayaqqabı', 'Bağ', 'Çəkmə'],
-      ['Çəkmə', 'Payız', 'Krossovka'],
-      ['Krossovka', 'Brend', 'Ayaqqabı'],
-      ['Terlik', 'Ana', 'Sandal'],
-      ['Pijama', 'Gecə', 'Xalat'],
-      ['Gödəkcə', 'Fermuar', 'Palto'],
-      ['Palto', 'Asılqan', 'Gödəkcə'],
-      ['Sviter', 'Nənə', 'Hudi'],
-      ['Eynək', 'Kitab', 'Linza'],
-      ['Qol saatı', 'Hədiyyə', 'Bilərzik'],
-      ['Üzük', 'Barmaq', 'Sırğa'],
-      ['Sırğa', 'Parıltı', 'Boyunbağı'],
-      ['Boyunbağı', 'Mirvari', 'Üzük'],
-      ['Çanta', 'Qarışıqlıq', 'Bel çantası'],
-      ['Kəmər', 'Deşik', 'Qalstuk'],
-    ],
-  },
-  {
-    id: 'music',
-    name: 'Musiqi',
-    emoji: '🎵',
-    words: [
-      ['Gitara', 'Tonqal', 'Ukulele'],
-      ['Piano', 'Ağ-qara', 'Sintezator'],
-      ['Skripka', 'Çənə', 'Violonçel'],
-      ['Baraban', 'Ürək', 'Nağara'],
-      ['Nağara', 'Toy', 'Baraban'],
-      ['Truba', 'Fil', 'Saksafon'],
-      ['Saksafon', 'Gecə', 'Truba'],
-      ['Fleyta', 'Quş', 'Balaban'],
-      ['Balaban', 'Kədər', 'Zurna'],
-      ['Zurna', 'Bayram', 'Balaban'],
-      ['Mikrofon', 'Həyəcan', 'Qulaqlıq'],
-      ['Qulaqlıq', 'Metro', 'Mikrofon'],
-      ['Karaoke', 'Ekran', 'Konsert'],
-      ['Konsert', 'Bilet', 'Festival'],
-      ['Rep', 'Sürət', 'Meyxana'],
-      ['Rok', 'Saç', 'Metal'],
-      ['Caz', 'Duman', 'Blüz'],
-      ['Opera', 'Şüşə', 'Balet'],
-      ['Balet', 'Barmaq ucu', 'Opera'],
-      ['Orkestr', 'Çubuq', 'Xor'],
-      ['Xor', 'Birlik', 'Orkestr'],
-      ['Himn', 'Ayağa qalxmaq', 'Marş'],
-      ['Not', 'Yeddi', 'Akkord'],
-      ['DJ', 'Pult', 'Müğənni'],
-    ],
-  },
-  {
-    id: 'tech',
-    name: 'Texnologiya',
-    emoji: '📱',
-    words: [
-      ['Telefon', 'Asılılıq', 'Planşet'],
-      ['Planşet', 'Uşaq', 'Noutbuk'],
-      ['Noutbuk', 'Kafe', 'Kompüter'],
-      ['Smart saat', 'Addım', 'Fitnes qolbağı'],
-      ['Robot', 'Gələcək', 'Süni intellekt'],
-      ['Süni intellekt', 'Beyin', 'Robot'],
-      ['Dron', 'Vızıltı', 'Helikopter'],
-      ['Wi-Fi', 'Şifrə', 'Bluetooth'],
-      ['İnternet', 'Hörümçək', 'Wi-Fi'],
-      ['Selfi', 'Bucaq', 'Video'],
-      ['Emoji', 'Hiss', 'Stiker'],
-      ['Oyun konsolu', 'Rəqib', 'VR eynək'],
-      ['VR eynək', 'Başqa dünya', 'Oyun konsolu'],
-      ['Powerbank', 'Xilaskar', 'Şarj cihazı'],
-      ['Şarj cihazı', 'Gecə', 'Powerbank'],
-      ['Printer', 'Əsəb', 'Skaner'],
-      ['Kamera', 'Xatirə', 'Telefon'],
-      ['Klaviatura', 'Piano', 'Kompüter siçanı'],
-      ['Kompüter siçanı', 'Pendir', 'Klaviatura'],
-      ['Parol', 'Unutmaq', 'PIN kod'],
-      ['Sosial şəbəkə', 'Vaxt itkisi', 'Messencer'],
-      ['Naviqator', 'Sağa dönün', 'Xəritə'],
-      ['QR kod', 'Kvadrat', 'Ştrix kod'],
-    ],
-  },
-  {
-    id: 'nature',
-    name: 'Təbiət və hava',
-    emoji: '🌳',
-    words: [
-      ['Göy qurşağı', 'Xəzinə', 'Qütb parıltısı'],
-      ['Şimşək', 'Elektrik', 'Göy gurultusu'],
-      ['Vulkan', 'Partlayış', 'Zəlzələ'],
-      ['Zəlzələ', 'Şkala', 'Vulkan'],
-      ['Dəniz', 'Duz', 'Okean'],
-      ['Okean', 'Dərinlik', 'Dəniz'],
-      ['Şəlalə', 'Duş', 'Bulaq'],
-      ['Dağ', 'Uca', 'Təpə'],
-      ['Meşə', 'Azmaq', 'Cəngəllik'],
-      ['Səhra', 'Miraj', 'Çöl'],
-      ['Ay', 'Gecə', 'Günəş'],
-      ['Günəş', 'Enerji', 'Ay'],
-      ['Ulduz', 'Arzu', 'Planet'],
-      ['Bulud', 'Pambıq', 'Duman'],
-      ['Duman', 'Sirr', 'Bulud'],
-      ['Qar', 'Sükut', 'Dolu'],
-      ['Tufan', 'Qəzəb', 'Qasırğa'],
-      ['Ağac', 'Kölgə', 'Kol'],
-      ['Gül', 'Sevgi', 'Lalə'],
-      ['Kaktus', 'Qucaqlamaq', 'Aloe'],
-      ['Göl', 'Qu quşu', 'Gölməçə'],
-      ['Payız', 'Məktəb', 'Bahar'],
-      ['Qış', 'Yeni il', 'Payız'],
-      ['Yay', 'Tətil', 'Bahar'],
-      ['Bahar', 'Allergiya', 'Yay'],
-    ],
-  },
-  {
-    id: 'movies',
-    name: 'Film və cizgi filmləri',
-    emoji: '🎬',
-    words: [
-      ['Titanik', 'Qapı', 'Avatar'],
-      ['Avatar', 'Mavi', 'Titanik'],
-      ['Harri Potter', 'Eynək', 'Üzüklərin hökmdarı'],
-      ['Üzüklərin hökmdarı', 'Səyahət', 'Harri Potter'],
-      ['Şrek', 'Bataqlıq', 'Buz dövrü'],
-      ['Buz dövrü', 'Qoz', 'Şrek'],
-      ['Madaqaskar', 'Rəqs', 'Aslan kral'],
-      ['Aslan kral', 'Qaya', 'Madaqaskar'],
-      ['Tom və Cerri', 'Qovmaq', 'Mikki Maus'],
-      ['Mikki Maus', 'Əlcək', 'Tom və Cerri'],
-      ['Spayder-Men', 'Qonşu', 'Betmen'],
-      ['Betmen', 'Gecə', 'Spayder-Men'],
-      ['Dəmir adam', 'Milyarder', 'Kapitan Amerika'],
-      ['Frozen', 'Bacı', 'Rapunzel'],
-      ['Rapunzel', 'Tava', 'Frozen'],
-      ['Nemo', 'Ata', 'Su pərisi'],
-      ['Su pərisi', 'Səs', 'Nemo'],
-      ['Matrix', 'Həb', 'Terminator'],
-      ['Terminator', 'Qayıdış', 'Matrix'],
-      ['Arşın mal alan', 'Toy', 'O olmasın, bu olsun'],
-      ['O olmasın, bu olsun', 'Pul', 'Arşın mal alan'],
-      ['Kinq Konq', 'Banan', 'Qodzilla'],
-      ['Qodzilla', 'Yaponiya', 'Kinq Konq'],
-      ['Pinokkio', 'Yalan', 'Çippolino'],
-      ['Çippolino', 'Bağ', 'Pinokkio'],
-      ['Maşa və Ayı', 'Meşə', 'Tom və Cerri'],
-      ['Ninja tısbağalar', 'Kanalizasiya', 'Spayder-Men'],
-      ['Ceyms Bond', 'Martini', 'Missiya: Mümkünsüz'],
-    ],
-  },
-  {
-    id: 'events',
-    name: 'Bayram və tədbirlər',
-    emoji: '🎉',
-    words: [
-      ['Toy', 'Qohumlar', 'Nişan'],
-      ['Nişan', 'Şirni', 'Toy'],
-      ['Ad günü', 'Şam', 'Yubiley'],
-      ['Yeni il', 'Saat', 'Ad günü'],
-      ['Məzuniyyət', 'Papaq', 'Son zəng'],
-      ['Son zəng', 'Lent', 'Məzuniyyət'],
-      ['Bilik günü', 'Gül', 'Son zəng'],
-      ['Hellouin', 'Kostyum', 'Maskarad'],
-      ['Maskarad', 'Sirr', 'Hellouin'],
-      ['Piknik', 'Qarışqa', 'Kamp'],
-      ['Kamp', 'Ulduzlar', 'Piknik'],
-      ['Sevgililər günü', 'Qırmızı', '8 Mart'],
-      ['8 Mart', 'Çiçək', 'Sevgililər günü'],
-      ['Ziyafət', 'Masa', 'Qonaqlıq'],
-      ['Fişəng şousu', 'İt', 'Tonqal'],
-      ['Ekskursiya', 'Avtobus', 'Səyahət'],
-      ['Səyahət', 'Pasport', 'Ekskursiya'],
-      ['Olimpiada', 'Halqa', 'Çempionat'],
-      ['Xınayaxdı', 'Qız evi', 'Nişan'],
-      ['Sürpriz ziyafət', 'Gizlənmək', 'Ad günü'],
-      ['Festival', 'İzdiham', 'Konsert'],
-    ],
-  },
+  c('food', 'Yeməklər', '🍽️', `
+Plov|Dolma
+Dolma|Plov
+Qutab|Kətə
+Kətə|Qutab
+Dövğa|Şorba
+Kabab|Şaurma
+Lülə kabab|Kotlet
+Kotlet|Köftə
+Köftə|Kotlet
+Küftə bozbaş|Piti
+Piti|Bozbaş
+Bozbaş|Piti
+Xəngəl|Düşbərə
+Düşbərə|Pelmeni
+Pelmeni|Xinkal
+Xinkal|Pelmeni
+Şaurma|Dönər
+Dönər|Şaurma
+Pizza|Lahmacun
+Lahmacun|Pizza
+Burger|Sendviç
+Sendviç|Buterbrod
+Hot-doq|Burger
+Suşi|Roll
+Makaron|Spagetti
+Spagetti|Makaron
+Lazanya|Pizza
+Omlet|Qayğanaq
+Qayğanaq|Omlet
+Sosiska|Kolbasa
+Kolbasa|Sosiska
+Kartof fri|Çips
+Kartof püresi|Qızardılmış kartof
+Salat|Vinegret
+Şorba|Borş
+Borş|Şorba
+Mərci şorbası|Toyuq şorbası
+Çörək|Lavaş
+Lavaş|Yuxa
+Təndir çörəyi|Bulka
+Bulka|Kruassan
+Kruassan|Bulka
+Pirojki|Samsa
+Samsa|Pirojki
+Xaçapuri|Kökə
+Qovurma|Buğlama
+Buğlama|Qovurma
+Ləvəngi|Qızardılmış toyuq
+Toyuq qanadı|Toyuq budu
+Balıq|Krevet
+Krevet|Balıq
+Kürü|Krevet
+Sıyıq|Yulaf
+Pendir|Kəsmik
+Kəsmik|Pendir
+Yumurta|Pendir
+Kərə yağı|Marqarin
+Bal|Mürəbbə
+Mürəbbə|Bal
+Düyü|Qarabaşaq
+`),
+
+  c('fruit', 'Meyvə və tərəvəz', '🍎', `
+Alma|Armud
+Armud|Heyva
+Heyva|Armud
+Banan|Manqo
+Manqo|Ananas
+Ananas|Manqo
+Nar|Əncir
+Əncir|Xurma
+Xurma|Əncir
+Üzüm|Kişmiş
+Kişmiş|Üzüm
+Qarpız|Yemiş
+Yemiş|Qarpız
+Limon|Laym
+Laym|Limon
+Portağal|Mandarin
+Mandarin|Portağal
+Qreypfrut|Portağal
+Çiyələk|Moruq
+Moruq|Böyürtkən
+Böyürtkən|Moruq
+Qarağat|Böyürtkən
+Gilas|Albalı
+Albalı|Gilas
+Ərik|Şaftalı
+Şaftalı|Nektarin
+Nektarin|Şaftalı
+Gavalı|Alça
+Alça|Gavalı
+Zoğal|Alça
+Tut|Böyürtkən
+Kivi|Feyxoa
+Feyxoa|Kivi
+Avokado|Manqo
+Kokos|Ananas
+Pomidor|Bibər
+Bibər|Pomidor
+Xiyar|Kabaçok
+Kabaçok|Badımcan
+Badımcan|Kabaçok
+Kartof|Batat
+Batat|Kartof
+Soğan|Sarımsaq
+Sarımsaq|Soğan
+Yerkökü|Çuğundur
+Çuğundur|Turp
+Turp|Çuğundur
+Kələm|Gül kələm
+Gül kələm|Brokkoli
+Brokkoli|Gül kələm
+Kahı|Ispanaq
+Ispanaq|Kahı
+Cəfəri|Şüyüd
+Şüyüd|Cəfəri
+Reyhan|Nanə
+Nanə|Reyhan
+Balqabaq|Kabaçok
+Noxud|Lobya
+Lobya|Noxud
+Qarğıdalı|Noxud
+`),
+
+  c('animals', 'Heyvanlar', '🐾', `
+Pişik|İt
+İt|Canavar
+Canavar|Tülkü
+Tülkü|Canavar
+Aslan|Pələng
+Pələng|Bəbir
+Bəbir|Pələng
+Fil|Begemot
+Begemot|Kərgədan
+Kərgədan|Begemot
+Zürafə|Dəvə
+Dəvə|At
+At|Eşşək
+Eşşək|At
+Zebra|At
+İnək|Camış
+Camış|İnək
+Qoyun|Keçi
+Keçi|Qoyun
+Toyuq|Xoruz
+Xoruz|Toyuq
+Ördək|Qaz
+Qaz|Ördək
+Hinduşka|Toyuq
+Pinqvin|Suiti
+Suiti|Morj
+Morj|Suiti
+Delfin|Balina
+Balina|Delfin
+Köpəkbalığı|Delfin
+Ahtapot|Kalmar
+Meduza|Ahtapot
+Xərçəng|Krevet
+Meymun|Qorilla
+Qorilla|Şimpanze
+Şimpanze|Qorilla
+Ayı|Panda
+Panda|Koala
+Koala|Panda
+Kenquru|Dovşan
+Dovşan|Dələ
+Dələ|Siçan
+Siçan|Dələ
+Kirpi|Dələ
+İlan|Kərtənkələ
+Kərtənkələ|Timsah
+Timsah|Kərtənkələ
+Tısbağa|İlbiz
+İlbiz|Tısbağa
+Qurbağa|Kərtənkələ
+Qartal|Şahin
+Şahin|Qartal
+Bayquş|Qarğa
+Qarğa|Sərçə
+Sərçə|Göyərçin
+Göyərçin|Sərçə
+Tutuquşu|Bülbül
+Bülbül|Tutuquşu
+Qu quşu|Ördək
+Flaminqo|Qu quşu
+Kəpənək|Cırcırama
+Cırcırama|Kəpənək
+Arı|Eşşəkarısı
+Eşşəkarısı|Arı
+Milçək|Ağcaqanad
+Ağcaqanad|Milçək
+Qarışqa|Hörümçək
+Hörümçək|Qarışqa
+Maral|Ceyran
+Ceyran|Maral
+`),
+
+  c('jobs', 'Peşələr', '👨‍⚕️', `
+Həkim|Tibb bacısı
+Tibb bacısı|Həkim
+Diş həkimi|Həkim
+Cərrah|Həkim
+Müəllim|Tərbiyəçi
+Tərbiyəçi|Müəllim
+Professor|Müəllim
+Polis|Əsgər
+Əsgər|Polis
+Mühafizəçi|Polis
+Aşpaz|Qənnadçı
+Qənnadçı|Aşpaz
+Ofisiant|Barmen
+Barmen|Ofisiant
+Pilot|Stüardessa
+Stüardessa|Pilot
+Kapitan|Dənizçi
+Dənizçi|Kapitan
+Yanğınsöndürən|Xilasedici
+Xilasedici|Yanğınsöndürən
+Bərbər|Stilist
+Stilist|Bərbər
+Dərzi|Modelyer
+Modelyer|Dərzi
+Jurnalist|Bloger
+Bloger|Jurnalist
+Proqramçı|Dizayner
+Dizayner|Proqramçı
+Rəssam|Heykəltəraş
+Heykəltəraş|Rəssam
+Fotoqraf|Operator
+Operator|Fotoqraf
+Hakim|Vəkil
+Vəkil|Prokuror
+Prokuror|Vəkil
+Kosmonavt|Pilot
+Müğənni|Aktyor
+Aktyor|Müğənni
+Rejissor|Aktyor
+Sürücü|Kuryer
+Kuryer|Poçtalyon
+Poçtalyon|Kuryer
+Fermer|Çoban
+Çoban|Fermer
+Bağban|Fermer
+Memar|İnşaatçı
+İnşaatçı|Memar
+Elektrik|Santexnik
+Santexnik|Elektrik
+Mexanik|Elektrik
+Satıcı|Kassir
+Kassir|Satıcı
+Mühasib|Bankir
+Bankir|Mühasib
+Psixoloq|Həkim
+Sehrbaz|Kloun
+Kloun|Sehrbaz
+Futbolçu|Məşqçi
+Məşqçi|Futbolçu
+Kitabxanaçı|Müəllim
+Alim|Professor
+Dülgər|İnşaatçı
+Qəssab|Aşpaz
+`),
+
+  c('countries', 'Ölkələr', '🌍', `
+Türkiyə|Yunanıstan
+Yunanıstan|Türkiyə
+Rusiya|Ukrayna
+Ukrayna|Belarus
+Belarus|Ukrayna
+Gürcüstan|Türkiyə
+İran|Türkiyə
+Qazaxıstan|Özbəkistan
+Özbəkistan|Türkmənistan
+Türkmənistan|Özbəkistan
+Qırğızıstan|Qazaxıstan
+Yaponiya|Koreya
+Koreya|Yaponiya
+Çin|Yaponiya
+Hindistan|Pakistan
+Pakistan|Hindistan
+Misir|Mərakeş
+Mərakeş|Tunis
+Tunis|Mərakeş
+Səudiyyə Ərəbistanı|BƏƏ
+BƏƏ|Qətər
+Qətər|BƏƏ
+İtaliya|İspaniya
+İspaniya|Portuqaliya
+Portuqaliya|İspaniya
+Fransa|Belçika
+Belçika|Niderland
+Niderland|Belçika
+Almaniya|Avstriya
+Avstriya|İsveçrə
+İsveçrə|Avstriya
+İngiltərə|İrlandiya
+İrlandiya|Şotlandiya
+Şotlandiya|İrlandiya
+İsveç|Norveç
+Norveç|Finlandiya
+Finlandiya|İsveç
+Polşa|Çexiya
+Çexiya|Polşa
+ABŞ|Kanada
+Kanada|ABŞ
+Meksika|Braziliya
+Braziliya|Argentina
+Argentina|Braziliya
+Avstraliya|Yeni Zelandiya
+Yeni Zelandiya|Avstraliya
+Tailand|Vyetnam
+Vyetnam|Tailand
+İndoneziya|Malayziya
+Malayziya|İndoneziya
+Kuba|Meksika
+`),
+
+  c('cities', 'Şəhərlər', '🏙️', `
+Bakı|Gəncə
+Gəncə|Sumqayıt
+Sumqayıt|Bakı
+Şuşa|Şəki
+Şəki|Qəbələ
+Qəbələ|Quba
+Quba|Qusar
+Qusar|Quba
+Lənkəran|Astara
+Astara|Lənkəran
+Naxçıvan|Ordubad
+Ordubad|Naxçıvan
+Mingəçevir|Şirvan
+Şirvan|Mingəçevir
+Şamaxı|İsmayıllı
+İsmayıllı|Şamaxı
+Zaqatala|Balakən
+Balakən|Zaqatala
+Xankəndi|Şuşa
+Ağdam|Füzuli
+Füzuli|Ağdam
+Kəlbəcər|Laçın
+Laçın|Kəlbəcər
+İstanbul|Ankara
+Ankara|İzmir
+İzmir|Antalya
+Antalya|İzmir
+Tbilisi|Batumi
+Batumi|Tbilisi
+Moskva|Sankt-Peterburq
+Sankt-Peterburq|Moskva
+Paris|London
+London|Paris
+Roma|Milan
+Milan|Roma
+Venesiya|Roma
+Berlin|Münhen
+Münhen|Berlin
+Madrid|Barselona
+Barselona|Madrid
+Nyu-York|Los-Anceles
+Los-Anceles|Nyu-York
+Las-Veqas|Los-Anceles
+Dubay|Abu-Dabi
+Abu-Dabi|Dubay
+Tokio|Seul
+Seul|Tokio
+Pekin|Şanxay
+Şanxay|Pekin
+Tehran|Təbriz
+Təbriz|Tehran
+Praqa|Vyana
+Vyana|Praqa
+Amsterdam|Brüssel
+`),
+
+  c('sports', 'İdman', '⚽', `
+Futbol|Futzal
+Futzal|Futbol
+Basketbol|Voleybol
+Voleybol|Basketbol
+Həndbol|Voleybol
+Tennis|Badminton
+Badminton|Tennis
+Stolüstü tennis|Tennis
+Reqbi|Futbol
+Beysbol|Kriket
+Kriket|Beysbol
+Qolf|Bilyard
+Bilyard|Bouling
+Bouling|Bilyard
+Xokkey|Kərlinq
+Kərlinq|Xokkey
+Fiqurlu konkisürmə|Gimnastika
+Gimnastika|Akrobatika
+Akrobatika|Gimnastika
+Boks|Kikboksinq
+Kikboksinq|Boks
+Güləş|Cüdo
+Cüdo|Sambo
+Sambo|Cüdo
+Karate|Taekvondo
+Taekvondo|Karate
+Sumo|Güləş
+Şahmat|Dama
+Dama|Şahmat
+Nərd|Domino
+Domino|Nərd
+Üzgüçülük|Dalğıclıq
+Dalğıclıq|Üzgüçülük
+Su polosu|Üzgüçülük
+Qaçış|Marafon
+Marafon|Qaçış
+Hündürlüyə tullanma|Uzunluğa tullanma
+Uzunluğa tullanma|Hündürlüyə tullanma
+Ağır atletika|Bodibildinq
+Bodibildinq|Ağır atletika
+Xizək|Snoubord
+Snoubord|Xizək
+Sörfinq|Skeytbord
+Skeytbord|Rolik
+Rolik|Skeytbord
+Velosiped idmanı|Motokros
+Motokros|Velosiped idmanı
+Formula 1|Ralli
+Ralli|Formula 1
+Atıcılıq|Oxatma
+Oxatma|Atıcılıq
+Qılıncoynatma|Oxatma
+Dağçılıq|Qayaya dırmanma
+Qayaya dırmanma|Dağçılıq
+Atçılıq|Çovqan
+Çovqan|Atçılıq
+Avarçəkmə|Yelkənli idman
+Yelkənli idman|Avarçəkmə
+`),
+
+  c('home', 'Ev əşyaları', '🏠', `
+Divan|Kreslo
+Kreslo|Divan
+Stul|Taburet
+Taburet|Stul
+Masa|Jurnal masası
+Jurnal masası|Masa
+Çarpayı|Divan
+Şkaf|Komod
+Komod|Şkaf
+Rəf|Şkaf
+Soyuducu|Dondurucu
+Dondurucu|Soyuducu
+Paltaryuyan|Qabyuyan
+Qabyuyan|Paltaryuyan
+Ütü|Paltaryuyan
+Fen|Saç düzləşdirici
+Tozsoran|Süpürgə
+Süpürgə|Tozsoran
+Güzgü|Pəncərə
+Pəncərə|Qapı
+Qapı|Pəncərə
+Pərdə|Jalüz
+Jalüz|Pərdə
+Xalça|Palaz
+Palaz|Xalça
+Yastıq|Yorğan
+Yorğan|Yastıq
+Döşək|Yorğan
+Lampa|Çilçıraq
+Çilçıraq|Lampa
+Şam|Lampa
+Televizor|Proyektor
+Proyektor|Televizor
+Saat|Zəngli saat
+Zəngli saat|Saat
+Kondisioner|Ventilyator
+Ventilyator|Kondisioner
+Radiator|Kamin
+Kamin|Peç
+Peç|Kamin
+Dəsmal|Xalat
+Xalat|Dəsmal
+Sabun|Şampun
+Şampun|Sabun
+Diş fırçası|Diş pastası
+Diş pastası|Diş fırçası
+Daraq|Saç fırçası
+Açar|Kilid
+Kilid|Açar
+Çətir|Plaş
+Vaza|Saksı
+Saksı|Vaza
+Şəkil çərçivəsi|Güzgü
+Asılqan|Şkaf
+Zibil qabı|Zibil torbası
+`),
+
+  c('kitchen', 'Mətbəx', '🍳', `
+Qazan|Tava
+Tava|Qazan
+Çaydan|Samovar
+Samovar|Çaydan
+Bıçaq|Qayçı
+Qayçı|Bıçaq
+Qaşıq|Çəngəl
+Çəngəl|Qaşıq
+Çay qaşığı|Qaşıq
+Boşqab|Kasa
+Kasa|Boşqab
+Stəkan|Fincan
+Fincan|Stəkan
+Armudu stəkan|Fincan
+Nimçə|Boşqab
+Sini|Nimçə
+Mikrodalğalı soba|Duxovka
+Soba|Duxovka
+Duxovka|Mikrodalğalı soba
+Blender|Mikser
+Mikser|Blender
+Toster|Qril
+Qril|Toster
+Qəhvə maşını|Çaydan
+Sürtgəc|Bıçaq
+Kəfgir|Çömçə
+Çömçə|Kəfgir
+Oxlov|Sürtgəc
+Ələk|Kəfgir
+Termos|Çaydan
+Butulka|Banka
+Banka|Butulka
+Duzqabı|İstiotqabı
+İstiotqabı|Duzqabı
+Qənddan|Duzqabı
+Folqa|Streç plyonka
+Doğrama taxtası|Bıçaq
+Önlük|Mətbəx əlcəyi
+Mətbəx əlcəyi|Önlük
+Süngər|Dəsmal
+Cezve|Qəhvə maşını
+Dəmlik|Çaydan
+Mətbəx tərəzisi|Ölçü stəkanı
+Ölçü stəkanı|Mətbəx tərəzisi
+Piyalə|Kasa
+Sac|Tava
+Manqal|Qril
+Şampur|Manqal
+Qəlib|Tava
+Sukəmər|Qazan
+`),
+
+  c('transport', 'Nəqliyyat', '🚗', `
+Avtomobil|Taksi
+Taksi|Avtomobil
+Avtobus|Trolleybus
+Trolleybus|Avtobus
+Marşrut taksi|Avtobus
+Metro|Tramvay
+Tramvay|Metro
+Qatar|Elektrik qatarı
+Elektrik qatarı|Qatar
+Təyyarə|Helikopter
+Helikopter|Təyyarə
+Gəmi|Bərə
+Bərə|Gəmi
+Qayıq|Yaxta
+Yaxta|Qayıq
+Kater|Yaxta
+Velosiped|Motosiklet
+Motosiklet|Skuter
+Skuter|Motosiklet
+Samokat|Velosiped
+Raket|Peyk
+Yük maşını|Furqon
+Furqon|Yük maşını
+Traktor|Kombayn
+Kombayn|Traktor
+Təcili yardım|Yanğın maşını
+Yanğın maşını|Təcili yardım
+Polis maşını|Təcili yardım
+Hava şarı|Dirijabl
+Dirijabl|Hava şarı
+Paraşüt|Deltaplan
+Deltaplan|Paraşüt
+Kanat yolu|Lift
+Lift|Eskalator
+Eskalator|Lift
+Kirşə|Araba
+Araba|Fayton
+Fayton|Araba
+Sualtı qayıq|Gəmi
+Limuzin|Avtomobil
+Kabriolet|Limuzin
+Cip|Avtomobil
+Ekskavator|Traktor
+Kran|Ekskavator
+Monoreyka|Metro
+Kvadrosikl|Motosiklet
+Yarış maşını|Kabriolet
+Uşaq arabası|Kirşə
+Katamaran|Qayıq
+Planer|Deltaplan
+`),
+
+  c('places', 'Məkanlar', '📍', `
+Məktəb|Universitet
+Universitet|Məktəb
+Uşaq bağçası|Məktəb
+Xəstəxana|Poliklinika
+Poliklinika|Xəstəxana
+Aptek|Poliklinika
+Hava limanı|Vağzal
+Vağzal|Avtovağzal
+Avtovağzal|Vağzal
+Çimərlik|Hovuz
+Hovuz|Akvapark
+Akvapark|Hovuz
+Kinoteatr|Teatr
+Teatr|Kinoteatr
+Muzey|Qalereya
+Qalereya|Muzey
+Kitabxana|Kitab mağazası
+Kitab mağazası|Kitabxana
+Restoran|Kafe
+Kafe|Restoran
+Çayxana|Kafe
+Supermarket|Bazar
+Bazar|Supermarket
+Ticarət mərkəzi|Supermarket
+Park|Bağ
+Bağ|Park
+Zoopark|Sirk
+Sirk|Zoopark
+İdman zalı|Stadion
+Stadion|İdman zalı
+Bank|Poçt
+Poçt|Bank
+Ofis|Fabrik
+Fabrik|Zavod
+Otel|Hostel
+Hostel|Otel
+Toy şadlığı|Restoran
+Mağara|Tunel
+Həbsxana|Polis bölməsi
+Polis bölməsi|Həbsxana
+Qəsr|Saray
+Saray|Qəsr
+Bərbərxana|Gözəllik salonu
+Gözəllik salonu|Bərbərxana
+Hamam|Sauna
+Sauna|Hamam
+Yanacaqdoldurma məntəqəsi|Avtoyuma
+Avtoyuma|Yanacaqdoldurma məntəqəsi
+Ferma|Kənd
+Kənd|Ferma
+Liman|Hava limanı
+Planetari|Muzey
+Əyləncə parkı|Akvapark
+`),
+
+  c('azerbaijan', 'Azərbaycan', '🇦🇿', `
+Qız Qalası|Şirvanşahlar sarayı
+Şirvanşahlar sarayı|Qız Qalası
+Alov qüllələri|Televiziya qülləsi
+Televiziya qülləsi|Alov qüllələri
+Bulvar|Fəvvarələr meydanı
+Fəvvarələr meydanı|Bulvar
+İçərişəhər|Qız Qalası
+Novruz|Çərşənbə
+Çərşənbə|Novruz
+Tonqal|Fişəng
+Səməni|Buğda
+Xarıbülbül|Lalə
+Tar|Kamança
+Kamança|Tar
+Saz|Tar
+Balaban|Zurna
+Zurna|Balaban
+Nağara|Qoşa nağara
+Qoşa nağara|Nağara
+Muğam|Meyxana
+Meyxana|Muğam
+Aşıq|Xanəndə
+Xanəndə|Aşıq
+Xalça|Kilim
+Kilim|Xalça
+Kəlağayı|Şal
+Papaq|Çuxa
+Çuxa|Papaq
+Qobustan|Palçıq vulkanları
+Palçıq vulkanları|Qobustan
+Yanardağ|Atəşgah
+Atəşgah|Yanardağ
+Şahdağ|Tufandağ
+Tufandağ|Şahdağ
+Göygöl|Maralgöl
+Maralgöl|Göygöl
+Şəki Xan sarayı|Şirvanşahlar sarayı
+Dədə Qorqud|Koroğlu
+Koroğlu|Dədə Qorqud
+Molla Nəsrəddin|Bəhlul Danəndə
+Bəhlul Danəndə|Molla Nəsrəddin
+Nizami Gəncəvi|Məhəmməd Füzuli
+Məhəmməd Füzuli|İmadəddin Nəsimi
+İmadəddin Nəsimi|Məhəmməd Füzuli
+Üzeyir Hacıbəyli|Qara Qarayev
+Qara Qarayev|Üzeyir Hacıbəyli
+Şərbət|Çay
+Çay|Şərbət
+Paxlava|Şəkərbura
+Şəkərbura|Paxlava
+Şorqoğal|Şəkərbura
+Halva|Paxlava
+Kosa və Keçəl|Novruz
+`),
+
+  c('clothes', 'Geyim və aksesuar', '👕', `
+Köynək|Futbolka
+Futbolka|Köynək
+Bluzka|Köynək
+Cins şalvar|Şalvar
+Şalvar|Cins şalvar
+Şort|Şalvar
+Don|Yubka
+Yubka|Don
+Kostyum|Pencək
+Pencək|Jilet
+Jilet|Pencək
+Qalstuk|Kəpənək qalstuk
+Kəpənək qalstuk|Qalstuk
+Şərf|Şal
+Şal|Şərf
+Kepka|Şlyapa
+Şlyapa|Kepka
+Toxunma papaq|Kepka
+Əlcək|Corab
+Corab|Əlcək
+Ayaqqabı|Çəkmə
+Çəkmə|Ayaqqabı
+Krossovka|Kedlər
+Kedlər|Krossovka
+Terlik|Sandal
+Sandal|Terlik
+Pijama|Xalat
+Gödəkcə|Palto
+Palto|Gödəkcə
+Plaş|Palto
+Sviter|Hudi
+Hudi|Sviter
+Kofta|Sviter
+Eynək|Günəş eynəyi
+Günəş eynəyi|Eynək
+Qol saatı|Bilərzik
+Bilərzik|Qol saatı
+Üzük|Sırğa
+Sırğa|Boyunbağı
+Boyunbağı|Sırğa
+Çanta|Bel çantası
+Bel çantası|Çanta
+Pul kisəsi|Çanta
+Kəmər|Asqı
+Mayo|Bikini
+Bikini|Mayo
+Uniforma|Kostyum
+Kombinezon|Pijama
+Smokinq|Kostyum
+Gəlinlik|Don
+`),
+
+  c('music', 'Musiqi', '🎵', `
+Gitara|Ukulele
+Ukulele|Gitara
+Elektro gitara|Bas gitara
+Bas gitara|Elektro gitara
+Piano|Sintezator
+Sintezator|Piano
+Royal|Piano
+Skripka|Violonçel
+Violonçel|Skripka
+Kontrabas|Violonçel
+Baraban|Təbil
+Təbil|Baraban
+Truba|Saksafon
+Saksafon|Truba
+Trombon|Truba
+Fleyta|Klarnet
+Klarnet|Fleyta
+Arfa|Piano
+Akkordeon|Qarmon
+Qarmon|Akkordeon
+Ağız qarmonu|Fleyta
+Mikrofon|Qulaqlıq
+Qulaqlıq|Mikrofon
+Dinamik|Qulaqlıq
+Karaoke|Konsert
+Konsert|Festival
+Festival|Konsert
+Rep|Hip-hop
+Hip-hop|Rep
+Rok|Metal
+Metal|Rok
+Caz|Blüz
+Blüz|Caz
+Pop|Disko
+Disko|Pop
+Klassik musiqi|Opera
+Opera|Balet
+Balet|Opera
+Orkestr|Xor
+Xor|Orkestr
+Ansambl|Orkestr
+Himn|Marş
+Marş|Himn
+Not|Akkord
+Akkord|Not
+DJ|Prodüser
+Prodüser|DJ
+Müğənni|Reper
+Reper|Müğənni
+Dirijor|Bəstəkar
+Bəstəkar|Dirijor
+Albom|Sinql
+Sinql|Albom
+Laylay|Mahnı
+Klip|Konsert
+`),
+
+  c('tech', 'Texnologiya', '📱', `
+Telefon|Planşet
+Planşet|Telefon
+Noutbuk|Kompüter
+Kompüter|Noutbuk
+Monitor|Televizor
+Smart saat|Fitnes qolbağı
+Fitnes qolbağı|Smart saat
+Robot|Süni intellekt
+Süni intellekt|Robot
+Dron|Radioidarəli maşın
+Wi-Fi|Bluetooth
+Bluetooth|Wi-Fi
+Selfi|Video
+Video|Foto
+Emoji|Stiker
+Stiker|Emoji
+Oyun konsolu|VR eynək
+VR eynək|Oyun konsolu
+Powerbank|Şarj cihazı
+Şarj cihazı|Powerbank
+Kabel|Adapter
+Adapter|Kabel
+Printer|Skaner
+Skaner|Printer
+Kamera|Veb-kamera
+Veb-kamera|Kamera
+Klaviatura|Kompüter siçanı
+Kompüter siçanı|Klaviatura
+Fləş kart|Yaddaş kartı
+Yaddaş kartı|Fləş kart
+Parol|PIN kod
+PIN kod|Parol
+Sosial şəbəkə|Messencer
+Messencer|Sosial şəbəkə
+E-poçt|SMS
+SMS|E-poçt
+Naviqator|Xəritə
+Xəritə|Naviqator
+QR kod|Ştrix kod
+Ştrix kod|QR kod
+Batareya|Akkumulyator
+Router|Modem
+Modem|Router
+Proqram|Tətbiq
+Tətbiq|Proqram
+Vebsayt|Bloq
+Bloq|Vebsayt
+Elektron kitab|Planşet
+Pult|Coystik
+Coystik|Pult
+Smart dinamik|Qulaqlıq
+Ekran|Monitor
+`),
+
+  c('nature', 'Təbiət və hava', '🌳', `
+Göy qurşağı|Qütb parıltısı
+Qütb parıltısı|Göy qurşağı
+Şimşək|Göy gurultusu
+Göy gurultusu|Şimşək
+Vulkan|Zəlzələ
+Zəlzələ|Vulkan
+Dəniz|Okean
+Okean|Dəniz
+Göl|Gölməçə
+Gölməçə|Göl
+Bulaq|Şəlalə
+Şəlalə|Bulaq
+Dağ|Təpə
+Təpə|Dağ
+Qaya|Uçurum
+Uçurum|Qaya
+Dərə|Kanyon
+Kanyon|Dərə
+Meşə|Cəngəllik
+Cəngəllik|Meşə
+Səhra|Çöl
+Çöl|Səhra
+Ada|Yarımada
+Yarımada|Ada
+Ay|Günəş
+Günəş|Ay
+Ulduz|Planet
+Planet|Ulduz
+Kometa|Meteorit
+Meteorit|Kometa
+Bulud|Duman
+Duman|Bulud
+Qar|Dolu
+Dolu|Qar
+Yağış|Çiskin
+Çiskin|Yağış
+Tufan|Qasırğa
+Qasırğa|Tornado
+Tornado|Qasırğa
+Külək|Tufan
+Ağac|Kol
+Kol|Ağac
+Gül|Lalə
+Lalə|Gül
+Kaktus|Aloe
+Aloe|Kaktus
+Payız|Bahar
+Bahar|Payız
+Qış|Yay
+Yay|Qış
+Şaxta|Qırov
+Qırov|Şaxta
+Buzlaq|Aysberq
+Aysberq|Buzlaq
+`),
+
+  c('movies', 'Film və cizgi filmləri', '🎬', `
+Titanik|Avatar
+Avatar|Titanik
+Harri Potter|Üzüklərin hökmdarı
+Üzüklərin hökmdarı|Harri Potter
+Hobbit|Üzüklərin hökmdarı
+Şrek|Buz dövrü
+Buz dövrü|Şrek
+Madaqaskar|Aslan kral
+Aslan kral|Madaqaskar
+Tom və Cerri|Mikki Maus
+Mikki Maus|Tom və Cerri
+Spayder-Men|Betmen
+Betmen|Supermen
+Supermen|Betmen
+Dəmir adam|Kapitan Amerika
+Kapitan Amerika|Dəmir adam
+Hulk|Tor
+Tor|Hulk
+Frozen|Rapunzel
+Rapunzel|Frozen
+Nemo|Su pərisi
+Su pərisi|Nemo
+Matrix|Terminator
+Terminator|Matrix
+Arşın mal alan|O olmasın, bu olsun
+O olmasın, bu olsun|Arşın mal alan
+Kinq Konq|Qodzilla
+Qodzilla|Kinq Konq
+Pinokkio|Çippolino
+Çippolino|Pinokkio
+Maşa və Ayı|Smeşariki
+Smeşariki|Maşa və Ayı
+Ninja tısbağalar|Transformerlər
+Transformerlər|Ninja tısbağalar
+Ceyms Bond|Missiya: Mümkünsüz
+Missiya: Mümkünsüz|Ceyms Bond
+Ulduz döyüşləri|Ulduzlararası
+Ulduzlararası|Ulduz döyüşləri
+Yura dövrü parkı|Kinq Konq
+Oyuncaqlar tarixçəsi|Maşınlar
+Maşınlar|Oyuncaqlar tarixçəsi
+Minyonlar|Şrek
+Kunq-fu Panda|Madaqaskar
+Simpsonlar|Sünger Bob
+Sünger Bob|Simpsonlar
+Evdə tək|Maska
+Maska|Evdə tək
+Forsaj|Transformerlər
+Karib dənizi quldurları|Hobbit
+Zoopolis|Kunq-fu Panda
+`),
+
+  c('sweets', 'İçkilər və şirniyyat', '🍰', `
+Yaşıl çay|Qara çay
+Qara çay|Yaşıl çay
+Qəhvə|Kakao
+Kakao|Qəhvə
+Kapuçino|Latte
+Latte|Kapuçino
+Espresso|Amerikano
+Amerikano|Espresso
+Kompot|Şirə
+Şirə|Kompot
+Limonad|Kola
+Kola|Limonad
+Mineral su|Qazlı su
+Qazlı su|Mineral su
+Ayran|Kefir
+Kefir|Ayran
+Süd|Kefir
+Milkşeyk|Smuzi
+Smuzi|Milkşeyk
+Şokolad|Konfet
+Konfet|Şokolad
+Karamel|Konfet
+Tort|Pirojna
+Pirojna|Tort
+Kek|Mafin
+Mafin|Kek
+Peçenye|Kraker
+Kraker|Peçenye
+Vafli|Peçenye
+Dondurma|Sorbet
+Sorbet|Dondurma
+Ponçik|Pişi
+Pişi|Ponçik
+Blinçik|Vafli
+Lokum|Marmelad
+Marmelad|Lokum
+Zefir|Marmelad
+Saqqız|Konfet
+Popkorn|Pambıq konfet
+Pambıq konfet|Popkorn
+Puding|Jele
+Jele|Puding
+Çizkeyk|Tiramisu
+Tiramisu|Çizkeyk
+Qozinaq|Şokolad batonu
+Şokolad batonu|Qozinaq
+Qoğal|Kətə
+Rulet|Tort
+Eskimo|Dondurma
+`),
+
+  c('school', 'Məktəb və ofis', '✏️', `
+Qələm|Karandaş
+Karandaş|Qələm
+Pozan|Korrektor
+Korrektor|Pozan
+Xətkeş|Bucaqölçən
+Bucaqölçən|Xətkeş
+Pərgar|Bucaqölçən
+Dəftər|Bloknot
+Bloknot|Dəftər
+Kitab|Jurnal
+Jurnal|Qəzet
+Qəzet|Jurnal
+Yazı lövhəsi|Flipçart
+Təbaşir|Marker
+Marker|Flomaster
+Flomaster|Marker
+Rəngli karandaş|Flomaster
+Yapışqan|Skotç
+Skotç|Yapışqan
+Stepler|Sancaq
+Sancaq|Stepler
+Qovluq|Zərf
+Zərf|Qovluq
+Portfel|Penal
+Penal|Portfel
+Kalkulyator|Çötkə
+Çötkə|Kalkulyator
+Qlobus|Xəritə
+Atlas|Qlobus
+Lüğət|Ensiklopediya
+Ensiklopediya|Lüğət
+Diktant|İnşa
+İnşa|Diktant
+İmtahan|Test
+Test|İmtahan
+Tənəffüs|Dərs
+Dərs|Tənəffüs
+Ev tapşırığı|Kontrol yazı
+Kontrol yazı|Ev tapşırığı
+Gündəlik|Dəftər
+Sinif|Auditoriya
+Auditoriya|Sinif
+Diplom|Attestat
+Attestat|Diplom
+Möhür|İmza
+İmza|Möhür
+Kağız|Karton
+Karton|Kağız
+Ofis kreslosu|Stul
+Kserokopiya|Printer
+`),
+
+  c('toys', 'Oyuncaq və oyunlar', '🧸', `
+Kukla|Ayıcıq
+Ayıcıq|Kukla
+Top|Şar
+Şar|Top
+Uçurtma|Kağız təyyarə
+Kağız təyyarə|Uçurtma
+Lego|Kubik
+Kubik|Lego
+Pazl|Rubik kubu
+Rubik kubu|Pazl
+Yo-yo|Fırfıra
+Fırfıra|Yo-yo
+Gizlənpaç|Tutmaca
+Tutmaca|Gizlənpaç
+Gözbağlıca|Gizlənpaç
+Tullanma ipi|Halqa
+Halqa|Tullanma ipi
+Yelləncək|Sürüşkən
+Sürüşkən|Yelləncək
+Batut|Yelləncək
+Kart oyunu|Loto
+Loto|Kart oyunu
+Monopoliya|Loto
+Mafiya|Krokodil
+Krokodil|Mafiya
+Dart|Sapand
+Sapand|Dart
+Oyuncaq maşın|Radioidarəli maşın
+Radioidarəli maşın|Oyuncaq maşın
+Oyuncaq qatar|Oyuncaq maşın
+Sabun köpüyü|Şar
+Plastilin|Kinetik qum
+Kinetik qum|Plastilin
+Barbi|Ken
+Ken|Barbi
+Kompüter oyunu|Mobil oyun
+Mobil oyun|Kompüter oyunu
+Minecraft|Roblox
+Roblox|Minecraft
+Fortnite|PUBG
+PUBG|Fortnite
+Tetris|İlan oyunu
+İlan oyunu|Tetris
+Viktorina|Sual-cavab
+Sual-cavab|Viktorina
+Krossvord|Skanvord
+Skanvord|Krossvord
+Sudoku|Krossvord
+Qum saatı|Zər
+Zər|Qum saatı
+`),
+
+  c('events', 'Bayram və tədbirlər', '🎉', `
+Toy|Nişan
+Nişan|Toy
+Xınayaxdı|Nişan
+Ad günü|Yubiley
+Yubiley|Ad günü
+Yeni il|Ad günü
+Məzuniyyət|Son zəng
+Son zəng|Məzuniyyət
+Bilik günü|Son zəng
+Hellouin|Maskarad
+Maskarad|Hellouin
+Piknik|Kamp
+Kamp|Piknik
+Sevgililər günü|8 Mart
+8 Mart|Sevgililər günü
+Ziyafət|Qonaqlıq
+Qonaqlıq|Ziyafət
+Ekskursiya|Səyahət
+Səyahət|Ekskursiya
+Olimpiada|Çempionat
+Çempionat|Olimpiada
+Sürpriz ziyafət|Ad günü
+Fişəng şousu|Konsert
+Uşaq bayramı|Ad günü
+Tələbə gecəsi|Məzuniyyət
+`),
 ];
 
 export function getCategory(id) {
-  return CATEGORIES.find((c) => c.id === id);
+  return CATEGORIES.find((cat) => cat.id === id);
 }
 
-export const TOTAL_WORDS = CATEGORIES.reduce((n, c) => n + c.words.length, 0);
+export const TOTAL_WORDS = CATEGORIES.reduce((n, cat) => n + cat.words.length, 0);

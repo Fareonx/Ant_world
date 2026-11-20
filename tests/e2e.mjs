@@ -45,6 +45,18 @@ async function fullShot(name) {
   await page.waitForTimeout(450);
   await page.screenshot({ path: path.join(SHOTS, `${String(shotN).padStart(2, '0')}-${name}.png`), fullPage: true });
 }
+// Örtüyü barmaqla yuxarı sürüşdürür; qaytarılan funksiya barmağı buraxır.
+async function swipeUp() {
+  const box = await page.locator('#cover').boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height * 0.6;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y - box.height * 0.6, { steps: 8 });
+  await page.waitForTimeout(150);
+  return () => page.mouse.up();
+}
+const roleText = () => page.locator('.role-layer').textContent();
 const store = () => page.evaluate(() => JSON.parse(localStorage.getItem('impostor:v1')));
 const act = (a, extra = '') => page.locator(`[data-action="${a}"]${extra}`).first().click();
 
@@ -100,14 +112,15 @@ await shot('reveal-front');
 
 for (let i = 0; i < 5; i++) {
   const pid = ids[i];
-  assert.equal(await page.locator('.pass-name span').last().textContent(), names[i]);
+  assert.equal(await page.locator('.cover-name').textContent(), names[i]);
   // Kartı açmadan keçmək olmaz
   assert.equal(await page.locator('[data-action="next-card"]').getAttribute('aria-disabled'), 'true');
-  await act('reveal');
-  await page.waitForTimeout(100);
-  const back = await page.locator('.flip-card .face.back').textContent();
+  const release = await swipeUp();
+  assert.equal(await page.locator('#next-btn').getAttribute('aria-disabled'), null, 'button enabled after swipe');
+  const back = await roleText();
   if (g.imposters.includes(pid)) {
-    assert.match(back, /impostorsan/i);
+    assert.match(back, /İmpostor/);
+    assert.equal(await page.locator('.role.imp').count(), 1);
     assert.ok(back.includes(g.hint), 'imposter sees hint');
     assert.ok(!back.includes(g.word), 'imposter must not see word');
     if (!s.__impShot) {
@@ -116,12 +129,15 @@ for (let i = 0; i < 5; i++) {
     }
   } else {
     assert.ok(back.includes(g.word));
-    assert.ok(!back.includes(g.hint) || g.word.includes(g.hint));
+    assert.match(back, /Vətəndaş/);
+    assert.equal(await page.locator('.role.civ').count(), 1);
     if (!s.__civShot) {
       await shot('reveal-civilian');
       s.__civShot = true;
     }
   }
+  await release();
+  await page.waitForTimeout(500);
   await act('next-card');
 }
 
@@ -141,7 +157,7 @@ await page.waitForSelector('.modal');
 await shot('peek-modal');
 await page.locator('[data-action="peek-pick"]').nth(2).click();
 await page.waitForSelector('.reveal');
-await act('reveal');
+await (await swipeUp())();
 await act('next-card');
 await page.waitForSelector('.order-list');
 
@@ -187,21 +203,22 @@ assert.notEqual(s.game.word, word1, 'new word');
 assert.notEqual(s.game.order[0], first1, 'first speaker changes');
 assert.equal(s.used.length, 2);
 
-// Ana səhifə → Davam et (məxfilik: kart bağlı açılır)
-await act('reveal');
+// Səhifə yenidən yüklənəndə oyun davam edir, kart bağlı qalır
+await page.reload();
+await page.waitForSelector('.reveal');
+assert.equal(await page.locator('#next-btn').getAttribute('aria-disabled'), 'true', 'card hidden after reload');
+
+// «✕» oyunu tamamilə bitirir: ana səhifədə «Davam et» yoxdur
 await act('exit');
 await act('modal-ok');
 await page.waitForSelector('.home');
+assert.equal((await store()).game, null, 'game cleared on exit');
+assert.equal(await page.locator('[data-action="resume"]').count(), 0);
 await page.reload();
-await page.waitForSelector('[data-action="resume"]');
-await shot('home-resume');
-await act('resume');
-await page.waitForSelector('.reveal');
-assert.equal(await page.locator('.flip-card.revealed').count(), 0, 'card hidden after reload');
+await page.waitForSelector('.home');
+await shot('home');
 
 // --- Undercover rejimi, səsvermə bağlı ---
-await act('exit');
-await act('modal-ok');
 await act('go', '[data-to="setup"]');
 await act('mode', '[data-mode="undercover"]');
 assert.ok(await page.locator('.hint-card').isDisabled());
@@ -214,12 +231,13 @@ g = s.game;
 assert.equal(g.mode, 'undercover');
 assert.equal(g.hint, null);
 for (let i = 0; i < 5; i++) {
-  await act('reveal');
-  const back = await page.locator('.flip-card .face.back').textContent();
-  assert.match(back, /Sənin sözün/);
-  assert.ok(!/impostor/i.test(back), 'undercover does not know');
+  const release = await swipeUp();
+  const back = await roleText();
+  assert.match(back, /Sözün/);
+  assert.ok(!/impostor|Vətəndaş/i.test(back), 'undercover does not know its role');
   assert.ok(back.includes(g.imposters.includes(ids[i]) ? g.imposterWord : g.word));
-  if (g.imposters.includes(ids[i]) && i < 5) await shot('undercover-card');
+  if (g.imposters.includes(ids[i])) await shot('undercover-card');
+  await release();
   await act('next-card');
 }
 await page.waitForSelector('.order-list');
